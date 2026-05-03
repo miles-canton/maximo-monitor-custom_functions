@@ -105,7 +105,7 @@ wsl cp credentials_as.json credentials_as_dev.json
 ```
 
 **重要提示**:
-- ⚠️ `credentials_as.json` - 测试脚本使用的文件,填入真实凭证后**不要提交到 Git**
+- ⚠️ `credentials_as.json` - 测试脚本使用的样例文件,复制为credentials_as_dev.json，填入真实凭证**不要直接修改，填写凭证，不要提交凭证到 Git**
 - ✅ `credentials_as_dev.json` - 已在 .gitignore 中排除,可以安全地存储真实凭证
 - 📝 提交代码前,请确保 `credentials_as.json` 中只包含占位符,不包含真实密钥
 
