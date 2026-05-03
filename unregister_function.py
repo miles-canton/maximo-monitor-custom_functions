@@ -26,7 +26,7 @@ from iotfunctions.enginelog import EngineLogging
 
 EngineLogging.configure_console_logging(logging.DEBUG)
 
-with open('credentials_as.json', encoding='utf-8') as F:
+with open('credentials_as_dev.json', encoding='utf-8') as F:
     credentials = json.loads(F.read())
 
 db = Database(credentials=credentials)
