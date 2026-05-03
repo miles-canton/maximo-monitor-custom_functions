@@ -231,21 +231,21 @@ class HelloWorld_XX(BaseTransformer):
 
 #### 步骤 3: 修改测试脚本
 
-编辑 `local_test_of_function_no_ssl.py`,修改两处:
+复制 `local_test_of_function_no_ssl.py`为`local_test_of_function_no_ssl_XX.py`并编辑,修改两处:
 
 **3.1 修改 import 语句**:
 ```python
 # 原来:
-from custom_MJ.functions import HelloWorld_MJ
+from custom.functions import HelloWorld_MJ
 
 # 改为:
-from custom_XX.functions import HelloWorld_XX
+from custom.functions import HelloWorld_XX
 ```
 
 **3.2 修改类名引用**:
 ```python
 # 原来:
-fn = HelloWorld_MJ(
+fn = HelloWorld(
     name='AS_Tester',
     greeting_col='greeting'
 )
@@ -260,7 +260,7 @@ fn = HelloWorld_XX(
 以及:
 ```python
 # 原来:
-db.register_functions([HelloWorld_MJ])
+db.register_functions([HelloWorld])
 
 # 改为:
 db.register_functions([HelloWorld_XX])
@@ -270,7 +270,7 @@ db.register_functions([HelloWorld_XX])
 
 ```bash
 # 运行测试并注册您的函数
-wsl uv run python local_test_of_function_no_ssl.py
+wsl uv run python local_test_of_function_no_ssl_XX.py
 ```
 
 测试成功后,您将看到:

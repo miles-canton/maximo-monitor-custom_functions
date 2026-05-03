@@ -55,16 +55,16 @@ By default test results are written to a file named df_test_entity_for_<function
 This file will be written to the working directory.
 
 '''
-# import the CLASS HelloWorld from custom.functions to be tested
-from custom.functions import HelloWorld
+# import the CLASS HelloWorld_MJ from custom_MJ.functions to be tested
+from custom_MJ.functions import HelloWorld_MJ
 
-fn = HelloWorld(name='AS_Tester', greeting_col='greeting')
+fn = HelloWorld_MJ(name='AS_Tester', greeting_col='greeting')
 fn.execute_local_test(db=db, db_schema=db_schema)
 
 '''
 Register function so that you can see it in the UI
 '''
 
-db.register_functions([HelloWorld])
+db.register_functions([HelloWorld_MJ])
 
 # Made with Bob
