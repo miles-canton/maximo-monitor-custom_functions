@@ -8,12 +8,12 @@ logger = logging.getLogger(__name__)
 # Specify the URL to your package here.
 # This URL must be accessible via pip install
 
-PACKAGE_URL = 'git+git://github.com/ibm-watson-iot/functions.git@starter_package'
+PACKAGE_URL = 'git+git://github.com/miles-canton/maximo-monitor-custom_functions@main'
 
 
-class HelloWorld(BaseTransformer):
+class HelloWorld_MJ(BaseTransformer):
     '''
-    The docstring of the function will show as the function description in the UI.
+    The docstring of the function will show as the function description in the UI. class HelloWorld_MJ(BaseTransformer).
     '''
 
     def __init__(self, name, greeting_col):
