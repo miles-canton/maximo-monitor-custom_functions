@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 PACKAGE_URL = 'git+git://github.com/miles-canton/maximo-monitor-custom_functions@main'
 
 
-class HelloWorld_MJ(BaseTransformer):
+class HelloWorld(BaseTransformer):
     '''
     The docstring of the function will show as the function description in the UI. class HelloWorld_MJ(BaseTransformer).
     '''

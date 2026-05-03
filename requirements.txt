@@ -1,0 +1,30 @@
+# IBM Watson IoT Functions SDK
+git+https://github.com/ibm-watson-iot/functions@production
+
+# Database drivers
+ibm-db>=3.2.9
+ibm-db-sa>=0.4.4
+psycopg2-binary>=2.9.12
+
+# Data processing
+dill==0.3.0
+numpy>=2.4.4
+pandas>=3.0.2
+pyarrow>=24.0.0
+
+# Machine learning
+scikit-learn>=1.8.0
+scipy>=1.17.1
+statsmodels>=0.14.6
+
+# Database and API
+sqlalchemy==1.4.53
+requests>=2.33.1
+urllib3>=2.6.3
+
+# Utilities
+lxml>=6.1.0
+tabulate>=0.10.0
+
+# Cloud storage
+ibm-cos-sdk>=2.16.2
