@@ -13,13 +13,13 @@ Maximo Monitor 自定义函数开发和测试项目
 │   ├── __init__.py
 │   └── functions.py                            # 自定义函数实现
 ├── utils/                                       # 工具脚本文件夹
-│   ├── db2_utils.py                            # DB2 数据库工具函数
+│   ├── db2_utils.py                            # DB2 数据库工具函数（含自动证书更新）
+│   ├── function_utils.py                       # 函数管理工具模块
 │   ├── unregister_function.py                  # 函数注销工具
 │   ├── list_registered_functions.py            # 查询已注册函数列表
 │   └── README.md                               # 工具说明文档
 ├── credentials_as.json                          # 凭证模板 (测试脚本使用)
 ├── credentials_as_dev.json                      # 真实凭证备份 (gitignore)
-├── db2_certificate.pem                          # DB2 SSL 证书文件
 ├── local_test_of_function_no_ssl_verify.py      # 通用测试脚本 (含修复)
 ├── local_test_of_function_no_ssl_verify_MJ.py   # MJ 示例测试脚本
 ├── requirements.txt                             # Python 依赖包列表
@@ -116,7 +116,7 @@ wsl cp credentials_as.json credentials_as_dev.json
 - `db2.password`: DB2 数据库密码 (需要替换 YOUR_DB2_PASSWORD)
 - `db2.port`: 数据库端口 (443 用于 SSL 连接)
 - `db2.security`: 安全连接类型 (SSL)
-- `db2.certificate`: SSL 证书文件路径
+- `db2.certificate`: SSL 证书文件路径 (不要修改)
 - `iotp.apiKey`: IoT 平台 API 密钥 (需要替换 YOUR_API_KEY)
 - `iotp.apiToken`: IoT 平台 API 令牌 (需要替换 YOUR_API_TOKEN)
 - `_verify_ssl`: 是否验证 SSL 证书 (false 用于开发/测试环境)
@@ -127,15 +127,18 @@ wsl cp credentials_as.json credentials_as_dev.json
 - 📝 测试脚本默认读取 `credentials_as_dev.json`,如果不存在则读取 `credentials_as.json`
 - 🔒 提交代码前,请确保 `credentials_as.json` 中只包含占位符,不包含真实密钥
 
+---
+
 ## 使用方案
 
 ### 方案概述
 
-本项目提供三种主要使用方案：
+本项目提供四种主要使用方案：
 
 1. **快速测试现有函数** - 直接运行示例函数进行测试
 2. **开发新的自定义函数** - 创建并测试您自己的函数
 3. **更新和重新部署函数** - 修改现有函数并重新注册
+4. **函数管理和 REST API** - 使用工具脚本和 REST API 管理函数
 
 ---
 
@@ -160,6 +163,15 @@ wsl cp credentials_as.json credentials_as_dev.json
 wsl uv run python local_test_of_function_no_ssl_verify_MJ.py
 ```
 
+**测试脚本会自动执行以下操作**：
+1. ✅ 自动下载最新的 DB2 SSL 证书（3059 字节）
+2. ✅ 禁用 SSL 证书验证（开发/测试环境）
+3. ✅ 配置 DB2 连接日志记录器
+4. ✅ 建立数据库连接
+5. ✅ 生成测试数据
+6. ✅ 执行自定义函数
+7. ✅ 注册函数到服务器
+
 #### 步骤 3: 验证结果
 
 ```bash
@@ -171,11 +183,12 @@ wsl head -10 df_TEST_ENTITY_FOR_HELLOWORLD_MJ.csv
 ```
 
 **预期输出**：
-- ✅ 数据库连接成功
+- ✅ DB2 证书自动下载成功（3059 字节）
+- ✅ 数据库连接成功建立
 - ✅ 生成 1,446 行测试数据
 - ✅ 函数执行成功
 - ✅ 函数注册成功 (HTTP 200)
-- ✅ 生成 CSV 测试文件
+- ✅ 生成 CSV 测试文件（116K 或 163K）
 
 ---
 
@@ -339,20 +352,24 @@ wsl head -20 df_TEST_ENTITY_FOR_YOURFUNCTIONNAME_XX.csv
 
 | 脚本名称 | 用途 | 说明 |
 |---------|------|------|
-| `local_test_of_function_no_ssl_verify_MJ.py` | 示例测试脚本 | 测试 HelloWorld_MJ 函数 |
-| `local_test_of_function_no_ssl_verify.py` | 通用测试脚本 | 可复制并修改用于测试自定义函数 |
+| `local_test_of_function_no_ssl_verify_MJ.py` | 示例测试脚本 | 测试 HelloWorld_MJ 函数，使用 quick_setup() |
+| `local_test_of_function_no_ssl_verify.py` | 通用测试脚本 | 可复制并修改用于测试自定义函数，使用 quick_setup() |
+| `utils/db2_utils.py` | DB2 工具模块 | 提供 quick_setup()、SSL 配置、证书自动下载 |
+| `utils/function_utils.py` | 函数管理工具模块 | 提供函数查询、注册、注销等功能 |
 | `utils/unregister_function.py` | 函数注销工具 | 用于注销已注册的函数 |
 | `utils/list_registered_functions.py` | 函数列表查询工具 | 查询所有已注册的函数 |
-| `utils/db2_utils.py` | DB2 工具模块 | SSL 和连接配置工具 |
 
 **测试脚本功能**：
-1. ✅ 加载凭证配置
-2. ✅ 建立数据库连接
-3. ✅ 连接 IoT 平台 API
-4. ✅ 生成测试数据（1,446 行时间序列数据）
-5. ✅ 执行自定义函数
-6. ✅ 保存测试结果到 CSV 文件
-7. ✅ 注册函数到 Maximo Monitor 服务器
+1. ✅ 自动下载最新的 DB2 SSL 证书
+2. ✅ 加载凭证配置
+3. ✅ 禁用 SSL 证书验证（开发/测试环境）
+4. ✅ 配置 DB2 连接日志记录器
+5. ✅ 建立数据库连接
+6. ✅ 连接 IoT 平台 API
+7. ✅ 生成测试数据（1,446 行时间序列数据）
+8. ✅ 执行自定义函数
+9. ✅ 保存测试结果到 CSV 文件
+10. ✅ 注册函数到 Maximo Monitor 服务器
 
 ---
 
@@ -424,9 +441,22 @@ wsl rm -f test_log.txt
 #### 查看已注册的函数
 
 ```bash
-# 查看函数注册状态（需要修改脚本添加查询功能）
-# 或通过 Maximo Monitor UI 查看
+# 查看所有已注册的函数（包括系统函数和自定义函数）
+wsl uv run python utils/list_registered_functions.py
+
+# 只查看自定义函数
+wsl uv run python utils/list_registered_functions.py --custom-only
+
+# 显示 catalogFunctionId
+wsl uv run python utils/list_registered_functions.py --custom-only --show-catalog-id
+
+# 使用 REST API 查看（需要 jq 工具）
+wsl bash utils/test_rest_api.sh
 ```
+
+**命令行参数说明**：
+- `--custom-only`: 只列出自定义函数（使用 API 的 customFunctionsOnly 参数）
+- `--show-catalog-id`: 显示每个函数的 catalogFunctionId
 
 ---
 
@@ -458,6 +488,390 @@ wsl rm -f test_log.txt
    - 处理异常情况
    - 记录关键操作日志
 
+---
+
+### 方案 4: 函数管理和 REST API
+
+适用场景：查询、管理已注册的函数，使用 REST API 进行自动化操作
+
+#### 工具脚本概览
+
+项目提供了一套完整的函数管理工具：
+
+| 工具脚本 | 功能 | 使用场景 |
+|---------|------|---------|
+| `utils/list_registered_functions.py` | 列出所有已注册函数 | 查看函数注册状态 |
+| `utils/unregister_function.py` | 注销指定函数 | 删除旧版本函数 |
+| `utils/function_utils.py` | 函数管理工具模块 | 提供 Python SDK 方式的函数管理功能 |
+
+#### 步骤 1: 查看已注册的函数
+
+**方法 1: 使用 Python 脚本**
+
+```bash
+# 列出所有已注册的函数（包括系统函数和自定义函数）
+wsl uv run python utils/list_registered_functions.py
+```
+
+**输出示例**：
+```
+================================================================================
+已注册的函数列表 (共 105 个)
+================================================================================
+
+系统函数 (103 个):
+  1. ActivityDuration (TRANSFORMER)
+  2. AggregateTimeInState (AGGREGATOR)
+  ...
+
+自定义函数 (2 个):
+  104. HelloWorld (TRANSFORMER)
+       模块: custom.functions.HelloWorld
+  105. HelloWorld_MJ (TRANSFORMER)
+       模块: custom_MJ.functions.HelloWorld_MJ
+```
+
+**方法 2: 使用 REST API (curl)**
+
+```bash
+# 运行完整的 REST API 测试套件
+wsl bash utils/test_rest_api.sh
+```
+
+**测试内容**：
+- ✅ 列出所有函数（105个）
+- ✅ 只列出自定义函数（2个）
+- ✅ 使用 jq 过滤特定函数
+- ℹ️  删除函数示例（不实际执行）
+- ℹ️  注册函数示例（不实际执行）
+
+#### 步骤 2: 注销函数
+
+**方法 1: 使用 Python 脚本**
+
+编辑 `utils/unregister_function.py`，设置要注销的函数名：
+
+```python
+# 修改函数名
+function_name = 'YourFunctionName_XX'
+```
+
+运行注销脚本：
+
+```bash
+wsl uv run python utils/unregister_function.py
+```
+
+**方法 2: 使用 REST API (curl)**
+
+```bash
+# 直接使用 curl 删除函数
+curl -X DELETE "https://${AS_HOST}/api/catalog/v1/${TENANT_ID}/function/YourFunctionName_XX" \
+  -H "X-api-key: ${API_KEY}" \
+  -H "X-api-token: ${API_TOKEN}" \
+  -k
+```
+
+**方法 3: 使用 Python SDK 工具模块（推荐）**
+
+`utils/function_utils.py` 提供了一套完整的函数管理工具，支持安全删除、查询等操作：
+
+```python
+from iotfunctions.db import Database
+from utils.function_utils import (
+    get_registered_functions,
+    is_function_registered,
+    safe_unregister_function,
+    unregister_function
+)
+
+# 初始化数据库连接
+db = Database(credentials=credentials)
+
+# 1. 获取所有已注册的函数
+all_functions = get_registered_functions(db)
+print(f"找到 {len(all_functions)} 个函数")
+
+# 2. 只获取自定义函数
+custom_functions = get_registered_functions(db, custom_only=True)
+print(f"找到 {len(custom_functions)} 个自定义函数")
+for func in custom_functions:
+    print(f"  - {func['name']} (catalogFunctionId: {func['catalogFunctionId']})")
+
+# 3. 检查函数是否已注册
+if is_function_registered(db, 'YourFunctionName_XX'):
+    print("函数已注册")
+else:
+    print("函数未注册")
+
+# 4. 安全地删除函数（先检查再删除，推荐）
+success, message = safe_unregister_function(db, 'YourFunctionName_XX')
+print(message)
+
+# 5. 直接删除函数（不检查是否存在）
+unregister_function(db, 'YourFunctionName_XX')
+# 或使用 catalogFunctionId（推荐）
+unregister_function(db, '128')
+```
+
+**function_utils.py 提供的功能**：
+
+| 函数 | 功能 | 参数 |
+|------|------|------|
+| `get_registered_functions(db, custom_only=False)` | 获取已注册函数列表 | `custom_only`: 是否只获取自定义函数 |
+| `is_function_registered(db, function_name)` | 检查函数是否已注册 | `function_name`: 函数名称 |
+| `unregister_function(db, function_name_or_id)` | 注销指定函数 | `function_name_or_id`: 函数名或 catalogFunctionId |
+| `safe_unregister_function(db, function_name)` | 安全删除（先检查再删除） | `function_name`: 函数名称 |
+
+**使用示例**：
+
+```python
+# 示例 1: 在测试脚本中集成安全删除
+from utils.function_utils import safe_unregister_function
+
+# 在注册新函数前，先安全删除旧版本
+success, message = safe_unregister_function(db, 'HelloWorld_MJ')
+print(message)
+
+# 然后注册新版本
+db.register_functions([HelloWorld_MJ])
+```
+
+```python
+# 示例 2: 批量查询和删除自定义函数
+from utils.function_utils import get_registered_functions, unregister_function
+
+# 获取所有自定义函数
+custom_functions = get_registered_functions(db, custom_only=True)
+
+# 删除所有自定义函数（使用 catalogFunctionId）
+for func in custom_functions:
+    catalog_id = func['catalogFunctionId']
+    print(f"删除函数: {func['name']} (ID: {catalog_id})")
+    unregister_function(db, catalog_id)
+```
+
+**优势**：
+- ✅ 使用 Python SDK，无需手动构建 HTTP 请求
+- ✅ 自动处理 API 凭证和认证
+- ✅ 支持 `custom_only` 参数，只获取自定义函数
+- ✅ 提供安全删除功能，避免误删
+- ✅ 支持使用 catalogFunctionId 进行精确操作
+
+#### 步骤 3: 使用 REST API 管理函数
+
+**查看 API 文档**：
+
+```bash
+# 查看完整的 REST API 使用指南
+wsl cat utils/REST_API_GUIDE.md
+```
+
+**可用的 REST API 端点**：
+
+| 方法 | 端点 | 功能 | 状态 |
+|------|------|------|------|
+| GET | `/api/catalog/v1/{tenant}/function?customFunctionsOnly=false` | 列出所有函数 | ✅ 可用 |
+| GET | `/api/catalog/v1/{tenant}/function?customFunctionsOnly=true` | 列出自定义函数 | ✅ 可用 |
+| POST | `/api/catalog/v1/{tenant}/function` | 注册新函数 | ✅ 可用 |
+| DELETE | `/api/catalog/v1/{tenant}/function/{catalogFunctionId}` | 删除函数（推荐使用 catalogFunctionId） | ✅ 可用 |
+| DELETE | `/api/catalog/v1/{tenant}/function/{name}` | 删除函数（使用函数名） | ✅ 可用 |
+| GET | `/api/catalog/v1/{tenant}/function/{catalogFunctionId}` | 获取单个函数 | ❌ 不可用 (405) |
+
+**重要说明**：
+- 函数列表返回的每个函数都包含 `catalogFunctionId` 字段，这是函数的唯一标识符
+- **推荐使用 `catalogFunctionId` 而不是函数名进行删除和注册操作**，以确保操作的精确性
+- GET 单个函数的端点不可用，建议使用列表查询后过滤的方式获取函数详情
+
+**Python SDK 示例**：
+
+```python
+from iotfunctions.db import Database
+
+# 初始化数据库连接
+db = Database(credentials=credentials)
+
+# 列出所有函数
+response = db.http_request(
+    object_type='allFunctions',
+    object_name='allFunctions',
+    request='GET',
+    payload={}
+)
+functions = response.json()
+print(f"找到 {len(functions)} 个函数")
+
+# 列出自定义函数
+response = db.http_request(
+    object_type='allFunctions',
+    object_name='allFunctions',
+    request='GET',
+    payload={'customFunctionsOnly': True}
+)
+custom_functions = response.json()
+print(f"找到 {len(custom_functions)} 个自定义函数")
+
+# 显示函数的 catalogFunctionId
+for func in custom_functions:
+    print(f"  - {func['name']} (catalogFunctionId: {func['catalogFunctionId']})")
+
+# 删除函数（推荐使用 catalogFunctionId）
+catalog_function_id = custom_functions[0]['catalogFunctionId']
+response = db.http_request(
+    object_type='function',
+    object_name=str(catalog_function_id),  # 使用 catalogFunctionId
+    request='DELETE'
+)
+
+# 或者使用函数名删除（不推荐，可能存在重名）
+response = db.http_request(
+    object_type='function',
+    object_name='YourFunctionName',  # 使用函数名
+    request='DELETE'
+)
+```
+
+**curl 命令示例**：
+
+```bash
+# 设置环境变量
+export TENANT_ID="ws1"
+export AS_HOST="ws1.api.monitor.inst1.apps.itz-7l9v61.infra01-lb.dal14.techzone.ibm.com"
+export API_KEY="your-api-key"
+export API_TOKEN="your-api-token"
+
+# 列出所有函数
+curl -X GET "https://${AS_HOST}/api/catalog/v1/${TENANT_ID}/function?customFunctionsOnly=false" \
+  -H "X-api-key: ${API_KEY}" \
+  -H "X-api-token: ${API_TOKEN}" \
+  -k | jq '.'
+
+# 列出自定义函数
+curl -X GET "https://${AS_HOST}/api/catalog/v1/${TENANT_ID}/function?customFunctionsOnly=true" \
+  -H "X-api-key: ${API_KEY}" \
+  -H "X-api-token: ${API_TOKEN}" \
+  -k | jq '.'
+
+# 查找特定函数并获取其 catalogFunctionId
+curl -X GET "https://${AS_HOST}/api/catalog/v1/${TENANT_ID}/function?customFunctionsOnly=false" \
+  -H "X-api-key: ${API_KEY}" \
+  -H "X-api-token: ${API_TOKEN}" \
+  -k | jq '.[] | select(.name=="HelloWorld_MJ") | {name, catalogFunctionId}'
+
+# 删除函数（推荐使用 catalogFunctionId）
+# 首先获取 catalogFunctionId
+CATALOG_ID=$(curl -s -X GET "https://${AS_HOST}/api/catalog/v1/${TENANT_ID}/function?customFunctionsOnly=true" \
+  -H "X-api-key: ${API_KEY}" \
+  -H "X-api-token: ${API_TOKEN}" \
+  -k | jq -r '.[] | select(.name=="YourFunctionName") | .catalogFunctionId')
+
+# 使用 catalogFunctionId 删除
+curl -X DELETE "https://${AS_HOST}/api/catalog/v1/${TENANT_ID}/function/${CATALOG_ID}" \
+  -H "X-api-key: ${API_KEY}" \
+  -H "X-api-token: ${API_TOKEN}" \
+  -k
+
+# 或者直接使用函数名删除（不推荐）
+curl -X DELETE "https://${AS_HOST}/api/catalog/v1/${TENANT_ID}/function/YourFunctionName" \
+  -H "X-api-key: ${API_KEY}" \
+  -H "X-api-token: ${API_TOKEN}" \
+  -k
+```
+
+#### 步骤 4: 自动化工作流
+
+**示例：完整的函数更新流程**
+
+```bash
+#!/bin/bash
+# 自动化函数更新脚本
+
+FUNCTION_NAME="YourFunctionName_XX"
+
+echo "🔍 检查函数是否已注册..."
+wsl uv run python utils/list_registered_functions.py | grep "$FUNCTION_NAME"
+
+if [ $? -eq 0 ]; then
+    echo "🗑️  删除旧版本函数..."
+    # 使用 REST API 删除
+    curl -X DELETE "https://${AS_HOST}/api/catalog/v1/${TENANT_ID}/function/${FUNCTION_NAME}" \
+      -H "X-api-key: ${API_KEY}" \
+      -H "X-api-token: ${API_TOKEN}" \
+      -k
+fi
+
+echo "🧪 运行测试并注册新版本..."
+wsl uv run python local_test_of_function_no_ssl_verify_XX.py
+
+echo "✅ 验证函数注册..."
+wsl uv run python utils/list_registered_functions.py | grep "$FUNCTION_NAME"
+```
+
+#### 步骤 5: 函数管理最佳实践
+
+1. **查询前先列表**
+   - 使用 `list_registered_functions.py` 查看所有函数
+   - 确认函数名称和状态后再操作
+
+2. **安全删除**
+   - 使用 `safe_unregister_function()` 而不是直接删除
+   - 先检查函数是否存在，避免不必要的错误
+
+3. **REST API 使用**
+   - 优先使用 Python SDK (`db.http_request()`)
+   - curl 适合快速测试和脚本自动化
+   - **推荐使用 catalogFunctionId 而不是函数名进行删除操作**
+   - 注意 GET 单个函数端点不可用，使用列表过滤
+   - 函数列表返回的每个函数都包含 `catalogFunctionId` 字段
+
+4. **批量操作**
+   - 使用 bash 脚本批量管理多个函数
+   - 结合 jq 工具处理 JSON 响应
+   - 记录操作日志便于追踪
+
+5. **错误处理**
+   - 检查 HTTP 状态码（200 成功，204 无内容，405 方法不允许）
+   - 处理函数不存在的情况
+   - 验证 API 凭证有效性
+   - 使用 catalogFunctionId 可以避免函数名冲突问题
+
+#### 关于 catalogFunctionId
+
+每个注册的函数都有一个唯一的 `catalogFunctionId`，这是函数在系统中的唯一标识符。
+
+**获取 catalogFunctionId**：
+
+```python
+# Python 方式
+from iotfunctions.db import Database
+
+db = Database(credentials=credentials)
+response = db.http_request(
+    object_type='allFunctions',
+    object_name='allFunctions',
+    request='GET',
+    payload={'customFunctionsOnly': True}
+)
+functions = response.json()
+
+for func in functions:
+    print(f"{func['name']}: catalogFunctionId = {func['catalogFunctionId']}")
+```
+
+```bash
+# curl 方式
+curl -X GET "https://${AS_HOST}/api/catalog/v1/${TENANT_ID}/function?customFunctionsOnly=true" \
+  -H "X-api-key: ${API_KEY}" \
+  -H "X-api-token: ${API_TOKEN}" \
+  -k | jq '.[] | {name, catalogFunctionId}'
+```
+
+**使用 catalogFunctionId 的优势**：
+- ✅ 唯一标识，避免函数名冲突
+- ✅ 精确操作，不会误删同名函数
+- ✅ 系统推荐的最佳实践
+- ✅ 适用于自动化脚本和批量操作
+
 
 ## 常见问题
 
@@ -470,12 +884,35 @@ wsl rm -f test_log.txt
 - WSL 环境中一切正常工作
 - 所有命令都使用 `wsl` 前缀
 
+### DB2 连接错误 (SQL30081N)
+
+**问题**: `SQL30081N A communication error has been detected`
+
+**解决方案**: 使用自动证书更新功能
+- 项目已集成 DB2 SSL 证书自动更新功能
+- 每次运行测试脚本时自动下载最新证书
+- 使用 `quick_setup(credentials)` 一键设置
+- 如果下载失败，自动回退使用现有证书
+
+**手动下载证书**（如需要）：
+```python
+from utils.db2_utils import download_db2_certificate
+
+# 手动下载证书
+success = download_db2_certificate(
+    db2_host="your-db2-host.com",
+    db2_port=443,
+    cert_file="db2_certificate.pem"
+)
+```
+
 ### SSL 证书验证错误
 
 **问题**: `SSL: CERTIFICATE_VERIFY_FAILED`
 
-**解决方案**: 使用 `local_test_of_function_no_ssl.py`
-- 该脚本已禁用 SSL 验证(仅用于开发/测试)
+**解决方案**: 使用 `local_test_of_function_no_ssl_verify.py`
+- 该脚本已禁用 SSL 验证（仅用于开发/测试）
+- 使用 `quick_setup(credentials)` 自动配置
 - 包含必要的 monkey patch
 
 ### Python 3.11 兼容性

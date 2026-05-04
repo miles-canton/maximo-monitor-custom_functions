@@ -3,13 +3,8 @@ import logging
 import inspect
 
 # 使用 db2_utils 模块进行 DB2 调试设置
-from utils.db2_utils import setup_ssl_no_verify, setup_db2_connection_logger
-
-# 设置 SSL 禁用验证
-setup_ssl_no_verify()
-
-# 设置 DB2 连接字符串日志记录器
-setup_db2_connection_logger()
+from utils.db2_utils import quick_setup
+from utils.function_utils import safe_unregister_function
 
 # Fix for Python 3.11: getargspec was removed, use getfullargspec instead
 if not hasattr(inspect, 'getargspec'):
@@ -25,13 +20,16 @@ You can test functions locally before registering them on the server to
 understand how they work.
 
 Supply credentials by pasting them from the usage section into the UI.
-Place your credentials in a separate file that you don't check into the repo. 
+Place your credentials in a separate file that you don't check into the repo.
 
 '''
 
 with open('credentials_as_dev.json', encoding='utf-8') as F:
     credentials = json.loads(F.read())
     print(credentials)
+
+# 一键设置所有 DB2 调试功能（包括自动下载最新证书）
+quick_setup(credentials)
 
 # Set to None if you don't have a schema
 
@@ -72,21 +70,13 @@ fn.execute_local_test(db=db, db_schema=db_schema)
 
 '''
 Register function so that you can see it in the UI
-先尝试删除已存在的函数，然后再注册
+先检查函数是否已注册，如果已注册则删除，然后再注册新版本
 '''
 
-# 尝试删除已存在的函数
-try:
-    print(f"\n检查函数 '{FUNCTION_NAME}' 是否已存在...")
-    db.http_request(
-        object_type='function',
-        object_name=FUNCTION_NAME,
-        request='DELETE',
-        payload={}
-    )
-    print(f"✅ 已删除旧版本的函数 '{FUNCTION_NAME}'")
-except Exception as e:
-    print(f"ℹ️  函数 '{FUNCTION_NAME}' 不存在或删除失败（这是正常的）: {str(e)[:100]}")
+# 安全地删除已存在的函数（先检查是否存在）
+print(f"\n🔍 检查函数 '{FUNCTION_NAME}' 是否已注册...")
+success, message = safe_unregister_function(db, FUNCTION_NAME)
+print(message)
 
 # 注册函数
 print(f"\n注册函数 '{FUNCTION_NAME}'...")

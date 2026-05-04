@@ -155,7 +155,7 @@ def restore_db2_connection(original_connect):
         pass
 
 
-def setup_all(db2_host: str = None, db2_port: int = 443, cert_file: str = "db2_certificate.pem"):
+def setup_all(db2_host: str | None = None, db2_port: int = 443, cert_file: str = "db2_certificate.pem", force_download_cert: bool = True):
     """
     一键设置所有 DB2 调试功能
     
@@ -163,6 +163,7 @@ def setup_all(db2_host: str = None, db2_port: int = 443, cert_file: str = "db2_c
         db2_host: DB2 服务器主机名（如果提供，会下载证书）
         db2_port: DB2 服务器端口（默认 443）
         cert_file: 证书文件名（默认 "db2_certificate.pem"）
+        force_download_cert: 是否强制下载最新证书（默认 True，每次都获取最新证书）
     
     Returns:
         dict: 包含设置信息的字典
@@ -187,10 +188,28 @@ def setup_all(db2_host: str = None, db2_port: int = 443, cert_file: str = "db2_c
     # 2. 下载证书（如果提供了主机名）
     if db2_host:
         try:
-            cert_path = download_db2_certificate(db2_host, db2_port, cert_file)
-            result["certificate"] = cert_path
+            # 检查是否需要下载证书
+            cert_path = Path(cert_file).resolve()
+            should_download = force_download_cert or not cert_path.exists()
+            
+            if should_download:
+                if force_download_cert and cert_path.exists():
+                    print(f"🔄 强制更新证书: {cert_file}")
+                else:
+                    print(f"📥 下载新证书: {cert_file}")
+                
+                cert_path = download_db2_certificate(db2_host, db2_port, cert_file)
+                result["certificate"] = cert_path
+            else:
+                print(f"✅ 使用现有证书: {cert_path}")
+                result["certificate"] = str(cert_path)
         except Exception as e:
             print(f"⚠️  证书下载失败: {e}")
+            # 如果下载失败但证书文件存在，使用现有证书
+            cert_path = Path(cert_file).resolve()
+            if cert_path.exists():
+                print(f"ℹ️  使用现有证书: {cert_path}")
+                result["certificate"] = str(cert_path)
     
     # 3. 设置 DB2 连接日志记录器
     try:
@@ -208,22 +227,30 @@ def setup_all(db2_host: str = None, db2_port: int = 443, cert_file: str = "db2_c
 
 
 # 便捷函数
-def quick_setup(credentials: dict):
+def quick_setup(credentials: dict, force_download_cert: bool = True):
     """
     根据 credentials 字典快速设置
     
     Args:
         credentials: 包含 DB2 配置的字典
+        force_download_cert: 是否强制下载最新证书（默认 True，每次都获取最新证书）
     
     Returns:
         dict: 设置结果
+    
+    Example:
+        # 每次都获取最新证书（推荐）
+        quick_setup(credentials)
+        
+        # 使用现有证书（如果存在）
+        quick_setup(credentials, force_download_cert=False)
     """
     db2_config = credentials.get('db2', {})
     host = db2_config.get('host')
     port = db2_config.get('port', 443)
     cert_file = db2_config.get('certificate', 'db2_certificate.pem')
     
-    return setup_all(db2_host=host, db2_port=port, cert_file=cert_file)
+    return setup_all(db2_host=host, db2_port=port, cert_file=cert_file, force_download_cert=force_download_cert)
 
 
 if __name__ == "__main__":
