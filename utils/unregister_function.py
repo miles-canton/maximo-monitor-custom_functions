@@ -1,21 +1,18 @@
 import json
 import logging
-import urllib3
-import ssl
+import sys
+import os
+
+# 添加父目录到 Python 路径
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from utils.db2_utils import setup_ssl_no_verify, setup_db2_connection_logger
+
+# 设置 SSL 禁用验证
+setup_ssl_no_verify()
+setup_db2_connection_logger()
+
 import inspect
-
-# Disable SSL warnings
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-# Monkey patch urllib3 to disable SSL verification globally
-original_poolmanager_init = urllib3.PoolManager.__init__
-
-def patched_poolmanager_init(self, *args, **kwargs):
-    kwargs['cert_reqs'] = ssl.CERT_NONE
-    kwargs['assert_hostname'] = False
-    return original_poolmanager_init(self, *args, **kwargs)
-
-urllib3.PoolManager.__init__ = patched_poolmanager_init
 
 # Fix for Python 3.11: getargspec was removed, use getfullargspec instead
 if not hasattr(inspect, 'getargspec'):
@@ -26,7 +23,12 @@ from iotfunctions.enginelog import EngineLogging
 
 EngineLogging.configure_console_logging(logging.DEBUG)
 
-with open('credentials_as_dev.json', encoding='utf-8') as F:
+# 尝试读取凭证文件（优先使用 dev 版本）
+credentials_file = '../credentials_as_dev.json'
+if not os.path.exists(credentials_file):
+    credentials_file = '../credentials_as.json'
+
+with open(credentials_file, encoding='utf-8') as F:
     credentials = json.loads(F.read())
 
 db = Database(credentials=credentials)

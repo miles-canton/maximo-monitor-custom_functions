@@ -3,7 +3,7 @@ import logging
 import inspect
 
 # 使用 db2_utils 模块进行 DB2 调试设置
-from db2_utils import setup_ssl_no_verify, setup_db2_connection_logger
+from utils.db2_utils import setup_ssl_no_verify, setup_db2_connection_logger
 
 # 设置 SSL 禁用验证
 setup_ssl_no_verify()

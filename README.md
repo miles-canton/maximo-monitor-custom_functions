@@ -12,13 +12,16 @@ Maximo Monitor 自定义函数开发和测试项目
 ├── custom_MJ/                                   # 自定义函数模块 (MJ 示例)
 │   ├── __init__.py
 │   └── functions.py                            # 自定义函数实现
+├── utils/                                       # 工具脚本文件夹
+│   ├── db2_utils.py                            # DB2 数据库工具函数
+│   ├── unregister_function.py                  # 函数注销工具
+│   ├── list_registered_functions.py            # 查询已注册函数列表
+│   └── README.md                               # 工具说明文档
 ├── credentials_as.json                          # 凭证模板 (测试脚本使用)
 ├── credentials_as_dev.json                      # 真实凭证备份 (gitignore)
 ├── db2_certificate.pem                          # DB2 SSL 证书文件
-├── db2_utils.py                                 # DB2 数据库工具函数
 ├── local_test_of_function_no_ssl_verify.py      # 通用测试脚本 (含修复)
 ├── local_test_of_function_no_ssl_verify_MJ.py   # MJ 示例测试脚本
-├── unregister_function.py                       # 函数注销工具
 ├── requirements.txt                             # Python 依赖包列表
 ├── .gitignore                                   # Git 忽略文件配置
 └── README.md                                    # 本文档
@@ -291,7 +294,7 @@ wsl head -20 df_TEST_ENTITY_FOR_YOURFUNCTIONNAME_XX.csv
 
 #### 步骤 2: 注销旧版本函数
 
-编辑 `unregister_function.py`，设置要注销的函数名：
+编辑 `utils/unregister_function.py`，设置要注销的函数名：
 
 ```python
 # 修改函数名为您要注销的函数
@@ -301,7 +304,7 @@ function_name = 'YourFunctionName_XX'
 运行注销脚本：
 
 ```bash
-wsl uv run python unregister_function.py
+wsl uv run python utils/unregister_function.py
 ```
 
 #### 步骤 3: 清理旧测试文件
@@ -338,7 +341,9 @@ wsl head -20 df_TEST_ENTITY_FOR_YOURFUNCTIONNAME_XX.csv
 |---------|------|------|
 | `local_test_of_function_no_ssl_verify_MJ.py` | 示例测试脚本 | 测试 HelloWorld_MJ 函数 |
 | `local_test_of_function_no_ssl_verify.py` | 通用测试脚本 | 可复制并修改用于测试自定义函数 |
-| `unregister_function.py` | 函数注销工具 | 用于注销已注册的函数 |
+| `utils/unregister_function.py` | 函数注销工具 | 用于注销已注册的函数 |
+| `utils/list_registered_functions.py` | 函数列表查询工具 | 查询所有已注册的函数 |
+| `utils/db2_utils.py` | DB2 工具模块 | SSL 和连接配置工具 |
 
 **测试脚本功能**：
 1. ✅ 加载凭证配置
