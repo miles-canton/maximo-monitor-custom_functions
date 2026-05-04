@@ -1,6 +1,12 @@
 # Credentials with sensitive information
 credentials_as_dev.json
 
+# SSL Certificates
+*.pem
+*.crt
+*.cer
+db2_certificate.*
+
 # Python virtual environment
 .venv/
 venv/
@@ -14,6 +20,8 @@ __pycache__/
 
 # Test output files
 df_TEST_ENTITY_FOR_*.csv
+
+
 
 # IDE
 .vscode/

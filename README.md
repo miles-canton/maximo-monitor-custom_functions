@@ -6,19 +6,22 @@ Maximo Monitor 自定义函数开发和测试项目
 
 ```
 .
-├── custom/                           # 自定义函数模块 (示例)
+├── custom/                                      # 自定义函数模块 (示例)
 │   ├── __init__.py
-│   └── functions.py                 # 自定义函数实现
-├── custom_MJ/                        # 自定义函数模块 (MJ 示例)
+│   └── functions.py                            # 自定义函数实现
+├── custom_MJ/                                   # 自定义函数模块 (MJ 示例)
 │   ├── __init__.py
-│   └── functions.py                 # 自定义函数实现
-├── credentials_as.json               # 凭证模板 (测试脚本使用)
-├── credentials_as_dev.json           # 真实凭证备份 (gitignore)
-├── local_test_of_function_no_ssl.py  # 推荐测试脚本 (含修复)
-├── unregister_function.py            # 函数注销工具
-├── requirements.txt                  # Python 依赖包列表
-├── .gitignore                        # Git 忽略文件配置
-└── README.md                         # 本文档
+│   └── functions.py                            # 自定义函数实现
+├── credentials_as.json                          # 凭证模板 (测试脚本使用)
+├── credentials_as_dev.json                      # 真实凭证备份 (gitignore)
+├── db2_certificate.pem                          # DB2 SSL 证书文件
+├── db2_utils.py                                 # DB2 数据库工具函数
+├── local_test_of_function_no_ssl_verify.py      # 通用测试脚本 (含修复)
+├── local_test_of_function_no_ssl_verify_MJ.py   # MJ 示例测试脚本
+├── unregister_function.py                       # 函数注销工具
+├── requirements.txt                             # Python 依赖包列表
+├── .gitignore                                   # Git 忽略文件配置
+└── README.md                                    # 本文档
 ```
 
 ## 环境设置
@@ -60,8 +63,8 @@ wsl uv pip install -r requirements.txt
 
 项目包含两个凭证文件:
 
-- **`credentials_as.json`** - 您的实际凭证文件 (测试脚本使用此文件)
-- **`credentials_as_dev.json`** - 开发者的凭证备份 (已在 .gitignore 中排除)
+- **`credentials_as.json`** - 凭证模板文件 (包含占位符)
+- **`credentials_as_dev.json`** - 真实凭证文件 (已在 .gitignore 中排除)
 
 #### 凭证文件说明
 
@@ -69,302 +72,387 @@ wsl uv pip install -r requirements.txt
 
 #### 首次设置
 
-编辑 `credentials_as.json`,填入您的真实数据库和 IoT 平台凭证:
+复制 `credentials_as.json` 为 `credentials_as_dev.json`,然后填入您的真实凭证:
+
+```bash
+# 复制凭证模板
+wsl cp credentials_as.json credentials_as_dev.json
+```
+
+编辑 `credentials_as_dev.json`,填入您的真实数据库和 IoT 平台凭证:
 
 ```json
 {
-    "tenantId": "your_tenant_id",
+    "tenantId": "ws1",
     "db2": {
-        "username": "your_db2_username",
-        "password": "your_db2_password",
+        "username": "db2inst1",
+        "password": "YOUR_DB2_PASSWORD",
         "databaseName": "BLUDB",
-        "port": 50000,
-        "httpsUrl": "jdbc:db2://your_db2_host:50000/BLUDB",
-        "host": "your_db2_host"
+        "port": 443,
+        "httpsUrl": "jdbc:db2://mas-inst1-system-db2u.apps.itz-7l9v61.infra01-lb.dal14.techzone.ibm.com:443/BLUDB:sslConnection=true;",
+        "host": "mas-inst1-system-db2u.apps.itz-7l9v61.infra01-lb.dal14.techzone.ibm.com",
+        "security": "SSL",
+        "certificate": "db2_certificate.pem"
     },
     "iotp": {
-        "url": "https://your_iot_url/api/v0002",
-        "orgId": "your_org_id",
-        "host": "your_iot_host",
+        "url": "https://ws1.messaging.iot.inst1.apps.itz-b912y0.infra01-lb.dal14.techzone.ibm.com/api/v0002",
+        "orgId": "ws1",
+        "host": "ws1.messaging.iot.inst1.apps.itz-b912y0.infra01-lb.dal14.techzone.ibm.com",
         "port": 443,
-        "asHost": "your_as_host",
-        "apiKey": "your_api_key",
-        "apiToken": "your_api_token"
+        "asHost": "ws1.api.monitor.inst1.apps.itz-7l9v61.infra01-lb.dal14.techzone.ibm.com",
+        "apiKey": "YOUR_API_KEY",
+        "apiToken": "YOUR_API_TOKEN"
     },
     "_verify_ssl": false
 }
 ```
 
-#### 备份您的凭证 (可选)
-
-如果您想保留一份不会被 Git 跟踪的凭证备份:
-
-```bash
-# 复制到 credentials_as_dev.json (此文件已在 .gitignore 中)
-wsl cp credentials_as.json credentials_as_dev.json
-```
+**字段说明**:
+- `tenantId`: 租户 ID
+- `db2.username`: DB2 数据库用户名
+- `db2.password`: DB2 数据库密码 (需要替换 YOUR_DB2_PASSWORD)
+- `db2.port`: 数据库端口 (443 用于 SSL 连接)
+- `db2.security`: 安全连接类型 (SSL)
+- `db2.certificate`: SSL 证书文件路径
+- `iotp.apiKey`: IoT 平台 API 密钥 (需要替换 YOUR_API_KEY)
+- `iotp.apiToken`: IoT 平台 API 令牌 (需要替换 YOUR_API_TOKEN)
+- `_verify_ssl`: 是否验证 SSL 证书 (false 用于开发/测试环境)
 
 **重要提示**:
-- ⚠️ `credentials_as.json` - 测试脚本使用的样例文件,复制为credentials_as_dev.json，填入真实凭证**不要直接修改，填写凭证，不要提交凭证到 Git**
+- ⚠️ `credentials_as.json` - 凭证模板文件,**不要直接修改此文件填写真实凭证**
 - ✅ `credentials_as_dev.json` - 已在 .gitignore 中排除,可以安全地存储真实凭证
-- 📝 提交代码前,请确保 `credentials_as.json` 中只包含占位符,不包含真实密钥
+- 📝 测试脚本默认读取 `credentials_as_dev.json`,如果不存在则读取 `credentials_as.json`
+- 🔒 提交代码前,请确保 `credentials_as.json` 中只包含占位符,不包含真实密钥
 
-## 测试和开发工作流程
+## 使用方案
 
-### 测试脚本说明
+### 方案概述
 
-项目包含两个主要测试脚本:
+本项目提供三种主要使用方案：
 
-1. **`local_test_of_function_no_ssl.py`** - 推荐使用
-   - 包含 SSL 验证禁用(用于开发/测试环境)
-   - 包含 Python 3.11 兼容性修复
-   - 在 WSL 环境中完美运行
+1. **快速测试现有函数** - 直接运行示例函数进行测试
+2. **开发新的自定义函数** - 创建并测试您自己的函数
+3. **更新和重新部署函数** - 修改现有函数并重新注册
 
-2. **`unregister_function.py`** - 函数管理工具
-   - 用于注销已注册的函数
-   - 允许重新注册同名函数
+---
 
-### 完整测试流程
+### 方案 1: 快速测试现有函数
 
-#### 方法 1: 首次测试和注册
+适用场景：验证环境配置、了解工作流程
 
-```bash
-# 运行测试并注册函数
-wsl uv run python local_test_of_function_no_ssl.py
-```
-
-测试脚本将:
-1. 加载凭证
-2. 连接到数据库
-3. 连接到 IoT 平台 API
-4. 生成测试数据 (1,446 行)
-5. 执行自定义函数
-6. 将测试结果写入 CSV 文件
-7. 注册函数到服务器
-
-#### 方法 2: 重新测试和注册(生成新测试文件)
-
-如果函数已存在,需要先注销再重新注册:
+#### 步骤 1: 准备凭证文件
 
 ```bash
-# 步骤 1: 删除旧测试文件
-wsl rm -f df_TEST_ENTITY_FOR_HELLOWORLD_MJ.csv
+# 复制凭证模板
+wsl cp credentials_as.json credentials_as_dev.json
 
-# 步骤 2: 注销现有函数
-wsl uv run python unregister_function.py
-
-# 步骤 3: 重新测试和注册(自动生成新测试文件)
-wsl uv run python local_test_of_function_no_ssl.py
+# 编辑 credentials_as_dev.json，填入真实凭证
+# 使用您喜欢的编辑器，如 vim、nano 或 VSCode
 ```
 
-#### 方法 3: 仅注销函数
+#### 步骤 2: 运行测试脚本
 
 ```bash
-wsl uv run python unregister_function.py
+# 运行测试并注册示例函数
+wsl uv run python local_test_of_function_no_ssl_verify_MJ.py
 ```
 
-**修改要注销的函数名**: 编辑 `unregister_function.py` 中的 `function_name` 变量
-
-### 测试输出
-
-测试结果将保存在工作目录中,文件名格式为:
-```
-df_TEST_ENTITY_FOR_<FUNCTION_NAME>.csv
-```
-
-**示例输出**:
-```csv
-id,evt_timestamp,deviceid,_timestamp,greeting
-73001,2026-05-02 02:19:47.774781,73001,2026-05-02 02:19:47.774781,Hello AS_Tester
-73002,2026-05-02 02:20:47.774781,73002,2026-05-02 02:20:47.774781,Hello AS_Tester
-...
-```
-
-### 验证测试结果
+#### 步骤 3: 验证结果
 
 ```bash
-# 查看文件信息
+# 查看生成的测试文件
 wsl ls -lh df_TEST_ENTITY_FOR_*.csv
 
-# 查看文件内容(前10行)
+# 查看测试数据（前10行）
 wsl head -10 df_TEST_ENTITY_FOR_HELLOWORLD_MJ.csv
 ```
 
-## 开发自定义函数
+**预期输出**：
+- ✅ 数据库连接成功
+- ✅ 生成 1,446 行测试数据
+- ✅ 函数执行成功
+- ✅ 函数注册成功 (HTTP 200)
+- ✅ 生成 CSV 测试文件
 
-### 快速开始: 测试您自己的函数
+---
 
-如果您想测试自己的自定义函数,请按照以下步骤操作:
+### 方案 2: 开发新的自定义函数
 
-#### 步骤 1: 复制并重命名函数模块
+适用场景：创建全新的数据处理函数
+
+#### 步骤 1: 创建函数模块
 
 ```bash
-# 复制 custom 文件夹
+# 复制示例模块（XX 替换为您的名字或标识）
 wsl cp -r custom custom_XX
-
-# XX 替换为您的名字,例如: custom_John, custom_Alice
 ```
 
-#### 步骤 2: 修改函数类名
+#### 步骤 2: 编写函数代码
 
-编辑 `custom_XX/functions.py`,将类名改为包含您名字的格式:
+编辑 `custom_XX/functions.py`：
 
 ```python
 from iotfunctions.base import BaseTransformer
 
-# 将 HelloWorld_MJ 改为 HelloWorld_XX (XX 是您的名字)
-class HelloWorld_XX(BaseTransformer):
-    def __init__(self, name, greeting_col):
+class YourFunctionName_XX(BaseTransformer):
+    """
+    您的自定义函数描述
+    """
+    def __init__(self, input_param, output_col):
         super().__init__()
-        self.name = name
-        self.greeting_col = greeting_col
+        self.input_param = input_param
+        self.output_col = output_col
     
     def execute(self, df):
-        df[self.greeting_col] = f"Hello {self.name}!"
+        """
+        执行数据转换逻辑
+        
+        参数:
+            df: pandas DataFrame，包含输入数据
+        
+        返回:
+            df: 处理后的 DataFrame
+        """
+        # 您的业务逻辑
+        df[self.output_col] = df['input_col'].apply(
+            lambda x: x * self.input_param
+        )
         return df
 ```
 
-**示例**:
-- `HelloWorld_John`
-- `HelloWorld_Alice`
-- `HelloWorld_Bob`
+#### 步骤 3: 创建测试脚本
 
-#### 步骤 3: 修改测试脚本
-
-复制 `local_test_of_function_no_ssl.py`为`local_test_of_function_no_ssl_XX.py`并编辑,修改两处:
-
-**3.1 修改 import 语句**:
-```python
-# 原来:
-from custom.functions import HelloWorld_MJ
-
-# 改为:
-from custom.functions import HelloWorld_XX
+```bash
+# 复制测试脚本模板
+wsl cp local_test_of_function_no_ssl_verify_MJ.py local_test_of_function_no_ssl_verify_XX.py
 ```
 
-**3.2 修改类名引用**:
+编辑 `local_test_of_function_no_ssl_verify_XX.py`，修改以下内容：
+
+**修改 1: 导入语句**
 ```python
-# 原来:
-fn = HelloWorld(
+# 修改前
+from custom_MJ.functions import HelloWorld_MJ
+
+# 修改后
+from custom_XX.functions import YourFunctionName_XX
+```
+
+**修改 2: 函数实例化**
+```python
+# 修改前
+fn = HelloWorld_MJ(
     name='AS_Tester',
     greeting_col='greeting'
 )
 
-# 改为:
-fn = HelloWorld_XX(
-    name='AS_Tester',
-    greeting_col='greeting'
+# 修改后
+fn = YourFunctionName_XX(
+    input_param=10,
+    output_col='result'
 )
 ```
 
-以及:
+**修改 3: 函数注册**
 ```python
-# 原来:
-db.register_functions([HelloWorld])
+# 修改前
+db.register_functions([HelloWorld_MJ])
 
-# 改为:
-db.register_functions([HelloWorld_XX])
+# 修改后
+db.register_functions([YourFunctionName_XX])
 ```
 
 #### 步骤 4: 运行测试
 
 ```bash
-# 运行测试并注册您的函数
-wsl uv run python local_test_of_function_no_ssl_XX.py
+# 执行测试脚本
+wsl uv run python local_test_of_function_no_ssl_verify_XX.py
 ```
 
-测试成功后,您将看到:
-- 生成的测试数据文件: `df_TEST_ENTITY_FOR_HELLOWORLD_XX.csv`
-- 函数成功注册到服务器 (HTTP 200)
-
-#### 步骤 5: 如需重新测试
+#### 步骤 5: 验证结果
 
 ```bash
-# 删除旧测试文件
-wsl rm -f df_TEST_ENTITY_FOR_HELLOWORLD_XX.csv
+# 查看生成的测试文件
+wsl ls -lh df_TEST_ENTITY_FOR_YOURFUNCTIONNAME_XX.csv
 
-# 注销函数 (需要先修改 unregister_function.py 中的函数名)
+# 检查输出数据
+wsl head -20 df_TEST_ENTITY_FOR_YOURFUNCTIONNAME_XX.csv
+```
+
+---
+
+### 方案 3: 更新和重新部署函数
+
+适用场景：修改现有函数并重新注册到服务器
+
+#### 步骤 1: 修改函数代码
+
+编辑 `custom_XX/functions.py`，更新您的函数逻辑
+
+#### 步骤 2: 注销旧版本函数
+
+编辑 `unregister_function.py`，设置要注销的函数名：
+
+```python
+# 修改函数名为您要注销的函数
+function_name = 'YourFunctionName_XX'
+```
+
+运行注销脚本：
+
+```bash
 wsl uv run python unregister_function.py
-
-# 重新测试
-wsl uv run python local_test_of_function_no_ssl.py
 ```
 
-### 详细说明: 创建自定义函数
+#### 步骤 3: 清理旧测试文件
 
-#### 1. 函数结构
-
-在 `custom_XX/functions.py` 中定义您的自定义函数:
-
-```python
-from iotfunctions.base import BaseTransformer
-
-class YourFunctionName(BaseTransformer):
-    def __init__(self, param1, param2, output_col):
-        super().__init__()
-        self.param1 = param1
-        self.param2 = param2
-        self.output_col = output_col
-    
-    def execute(self, df):
-        # 您的业务逻辑
-        df[self.output_col] = df['input_col'] * self.param1 + self.param2
-        return df
+```bash
+# 删除旧的测试输出文件
+wsl rm -f df_TEST_ENTITY_FOR_YOURFUNCTIONNAME_XX.csv
 ```
 
-#### 2. 本地测试
+#### 步骤 4: 重新测试和注册
 
-在 `local_test_of_function_no_ssl.py` 中导入并测试您的函数:
-
-```python
-from custom_XX.functions import YourFunctionName
-
-fn = YourFunctionName(
-    param1=10,
-    param2=5,
-    output_col='result'
-)
-fn.execute_local_test(db=db, db_schema=db_schema)
+```bash
+# 运行测试脚本，生成新的测试文件并注册函数
+wsl uv run python local_test_of_function_no_ssl_verify_XX.py
 ```
 
-#### 3. 注册函数
+#### 步骤 5: 验证更新
 
-```python
-db.register_functions([YourFunctionName])
+```bash
+# 检查新生成的测试文件
+wsl ls -lh df_TEST_ENTITY_FOR_YOURFUNCTIONNAME_XX.csv
+
+# 验证输出数据是否符合预期
+wsl head -20 df_TEST_ENTITY_FOR_YOURFUNCTIONNAME_XX.csv
 ```
 
-## 开发工作流程
+---
 
-### 开发新函数
+### 测试脚本说明
 
-1. 在 `custom/functions.py` 或 `custom_MJ/functions.py` 中编写函数
-2. 运行测试脚本验证功能
-3. 查看生成的 CSV 文件确认结果
-4. 函数自动注册到服务器
+项目包含以下测试脚本：
 
-### 更新现有函数
+| 脚本名称 | 用途 | 说明 |
+|---------|------|------|
+| `local_test_of_function_no_ssl_verify_MJ.py` | 示例测试脚本 | 测试 HelloWorld_MJ 函数 |
+| `local_test_of_function_no_ssl_verify.py` | 通用测试脚本 | 可复制并修改用于测试自定义函数 |
+| `unregister_function.py` | 函数注销工具 | 用于注销已注册的函数 |
 
-1. 修改 `custom/functions.py` 中的函数代码
-2. 删除旧测试文件
-3. 注销旧版本函数
-4. 重新运行测试并注册
+**测试脚本功能**：
+1. ✅ 加载凭证配置
+2. ✅ 建立数据库连接
+3. ✅ 连接 IoT 平台 API
+4. ✅ 生成测试数据（1,446 行时间序列数据）
+5. ✅ 执行自定义函数
+6. ✅ 保存测试结果到 CSV 文件
+7. ✅ 注册函数到 Maximo Monitor 服务器
 
-### 调试技巧
+---
 
-**查看详细日志**:
-测试脚本使用 DEBUG 级别日志,会显示:
-- 数据库连接状态
-- API 请求和响应
-- 数据生成过程
-- 函数执行细节
+### 测试输出文件
 
-**常见成功标志**:
+测试成功后，会在工作目录生成 CSV 文件：
+
+**文件命名格式**：
+```
+df_TEST_ENTITY_FOR_<FUNCTION_NAME>.csv
+```
+
+**示例输出内容**：
+```csv
+id,evt_timestamp,deviceid,_timestamp,greeting
+73001,2026-05-02 02:19:47.774781,73001,2026-05-02 02:19:47.774781,Hello AS_Tester
+73002,2026-05-02 02:20:47.774781,73002,2026-05-02 02:20:47.774781,Hello AS_Tester
+73003,2026-05-02 02:21:47.774781,73003,2026-05-02 02:21:47.774781,Hello AS_Tester
+...
+```
+
+**验证命令**：
+```bash
+# 查看文件大小和修改时间
+wsl ls -lh df_TEST_ENTITY_FOR_*.csv
+
+# 查看文件行数
+wsl wc -l df_TEST_ENTITY_FOR_*.csv
+
+# 查看文件内容（前10行）
+wsl head -10 df_TEST_ENTITY_FOR_HELLOWORLD_MJ.csv
+
+# 查看文件内容（后10行）
+wsl tail -10 df_TEST_ENTITY_FOR_HELLOWORLD_MJ.csv
+```
+
+---
+
+### 常用操作命令
+
+#### 查看日志和调试
+
+测试脚本使用 DEBUG 级别日志，会显示详细信息：
+
+```bash
+# 运行测试并查看详细日志
+wsl uv run python local_test_of_function_no_ssl_verify_XX.py 2>&1 | tee test_log.txt
+```
+
+**成功标志**：
 ```
 ✅ Database connection via SqlAlchemy established.
 ✅ Native database connection to DB2 established.
 ✅ http request ... successful. status 200
 ✅ Generated 1446 rows of time series data
+✅ Function registered successfully
 ```
+
+#### 批量清理测试文件
+
+```bash
+# 删除所有测试输出文件
+wsl rm -f df_TEST_ENTITY_FOR_*.csv
+
+# 删除日志文件
+wsl rm -f test_log.txt
+```
+
+#### 查看已注册的函数
+
+```bash
+# 查看函数注册状态（需要修改脚本添加查询功能）
+# 或通过 Maximo Monitor UI 查看
+```
+
+---
+
+### 最佳实践
+
+1. **命名规范**
+   - 函数类名：`FunctionName_YourInitials`（如 `HelloWorld_MJ`）
+   - 模块目录：`custom_YourInitials`（如 `custom_MJ`）
+   - 测试脚本：`local_test_of_function_no_ssl_YourInitials.py`
+
+2. **开发流程**
+   - 先在本地测试验证功能
+   - 确认测试输出正确后再注册
+   - 使用版本控制管理代码变更
+
+3. **凭证安全**
+   - 使用 `credentials_as_dev.json` 存储真实凭证
+   - 不要将真实凭证提交到 Git
+   - 定期更新凭证密码
+
+4. **测试数据**
+   - 保留测试输出文件用于对比
+   - 使用有意义的测试数据
+   - 验证边界条件和异常情况
+
+5. **函数设计**
+   - 保持函数功能单一
+   - 添加详细的文档字符串
+   - 处理异常情况
+   - 记录关键操作日志
+
 
 ## 常见问题
 
